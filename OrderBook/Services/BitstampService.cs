@@ -29,7 +29,7 @@ namespace OrderBook.Services
             _timer = new Timer(async _ => await FetchOrderBook(), null, TimeSpan.Zero, TimeSpan.FromMilliseconds(OrderBookFetchingFrequencyInMilliseconds));
         }
 
-        private async Task FetchOrderBook()
+        public async Task FetchOrderBook()
         {
             try
             {
