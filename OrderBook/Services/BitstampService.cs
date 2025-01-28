@@ -33,6 +33,7 @@ namespace OrderBook.Services
         {
             try
             {
+                var currentTime = DateTime.UtcNow;
                 var response = await _httpClient.GetStringAsync(OrderBookUrl);
                 var orderBookData = JsonConvert.DeserializeObject<OrderBookResponse>(response);
 
@@ -44,7 +45,7 @@ namespace OrderBook.Services
                     {
                         Name = b[0],
                         Value = value,
-                        Timestamp = DateTime.UtcNow,
+                        Timestamp = currentTime,
                         Type = OrderBookItemType.Bid,
                     };
                 }).Take(OrderBookItemsToTake).OrderBy(b => decimal.Parse(b.Name)).ToList();
@@ -57,7 +58,7 @@ namespace OrderBook.Services
                     {
                         Name = a[0],
                         Value = value,
-                        Timestamp = DateTime.UtcNow,
+                        Timestamp = currentTime,
                         Type = OrderBookItemType.Ask
                     };
                 }).Take(OrderBookItemsToTake).ToList();
