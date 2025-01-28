@@ -1,7 +1,140 @@
 ﻿@page "/"
+@rendermode @(new InteractiveServerRenderMode(false))
+@using OrderBook.Domain.Entities
+@using OrderBook.Services
+@using System.Globalization
+@using static OrderBook.Services.BitstampService
+@inject BitstampService BitstampService
 
-<PageTitle>Order Book</PageTitle>
+<h3>Order Book</h3>
 
-<h1>Hello, world!</h1>
+<Chart Config="_config1" @ref="_chart1" Height="400px"></Chart>
 
-Welcome to your new app.
+@code {
+    private BarChartConfig? _config1;
+    private Chart? _chart1;
+
+    private OrderBookResponse orderBook = new OrderBookResponse() { BidsItems = new List<OrderBookItem>(), AsksItems = new List<OrderBookItem>() };
+
+    private decimal btcAmount = 0;
+    private decimal btcQuote = 0;
+
+    private async void UpdatePrice(OrderBookResponse orderBook)
+    {
+        this.orderBook = orderBook;
+
+        _config1 = new BarChartConfig()
+            {
+                Options = new Options()
+                {
+                    Responsive = true,
+                    MaintainAspectRatio = false,
+                    Plugins = new Plugins()
+                    {
+                        Legend = new Legend()
+                        {
+                            Align = Align.Center,
+                            Display = true,
+                            Position = LegendPosition.Right
+                        }
+                    },
+                    Scales = new Dictionary<string, Axis>()
+                {
+                    {
+                        Scales.XAxisId, new Axis()
+                        {
+                            Stacked = true,
+                            Ticks = new Ticks()
+                            {
+                                MaxRotation = 0,
+                                MinRotation = 0
+                            }
+                        }
+                    },
+                    {
+                        Scales.YAxisId, new Axis()
+                        {
+                            Stacked = true
+                        }
+                    }
+                }
+                }
+            };
+
+        _config1.Data.Labels = orderBook.BidsItems.Select(b => b.Name).Concat(orderBook.AsksItems.Select(a => a.Name)).ToList();
+
+        _config1.Data.Datasets.Add(new BarDataset()
+            {
+                Label = "Value",
+                Data = orderBook.BidsItems.Select(b => b.Value).Concat(orderBook.AsksItems.Select(a => a.Value)).ToList(),
+                BackgroundColor = orderBook.BidsItems.Select(p => "rgba(75, 192, 192, 0.2)").Concat(orderBook.AsksItems.Select(p => "rgba(255, 99, 132, 0.2)")).ToList(),
+                BorderColor = orderBook.BidsItems.Select(p => "rgb(75, 192, 192)").Concat(orderBook.AsksItems.Select(prop => "rgb(255, 99, 132)")).ToList(),
+                BorderWidth = 1,
+            });
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Console.WriteLine("Component Disposed");
+        BitstampService.OnOrderBookUpdated -= UpdatePrice;
+        BitstampService.StopFetchingOrderBook();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        BitstampService.OnOrderBookUpdated += UpdatePrice;
+        BitstampService.StartFetchingOrderBook();
+        _config1 = new BarChartConfig()
+        {
+            Options = new Options()
+            {
+                Responsive = true,
+                MaintainAspectRatio = false,
+                Plugins = new Plugins()
+                {
+                    Legend = new Legend()
+                    {
+                        Align = Align.Center,
+                        Display = true,
+                        Position = LegendPosition.Right
+                    }
+                },
+                Scales = new Dictionary<string, Axis>()
+                {
+                    {
+                        Scales.XAxisId, new Axis()
+                        {
+                            Stacked = true,
+                            Ticks = new Ticks()
+                            {
+                                MaxRotation = 0,
+                                MinRotation = 0,
+                            },
+                            
+                        }
+                    },
+                    {
+                        Scales.YAxisId, new Axis()
+                        {
+                            Stacked = true
+                        }
+                    }
+                }
+            }
+        };
+
+        _config1.Data.Labels = orderBook.BidsItems.Select(b => b.Name).Concat(orderBook.AsksItems.Select(a => a.Name)).ToList();
+
+        _config1.Data.Datasets.Add(new BarDataset()
+        {
+            Label = "Value",
+            Data = orderBook.BidsItems.Select(b => b.Value).Concat(orderBook.AsksItems.Select(a => a.Value)).ToList(),
+            BackgroundColor = orderBook.BidsItems.Select(p => "rgba(75, 192, 192, 0.2)").Concat(orderBook.AsksItems.Select(p => "rgba(255, 99, 132, 0.2)")).ToList(),
+            BorderColor = orderBook.BidsItems.Select(p => "rgb(75, 192, 192)").Concat(orderBook.AsksItems.Select(prop => "rgb(255, 99, 132)")).ToList(),
+            BorderWidth = 1,
+            
+        });
+    }
+}

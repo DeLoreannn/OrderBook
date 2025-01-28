@@ -1,9 +1,13 @@
 using OrderBook.Components;
+using OrderBook.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSingleton<BitstampService>();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
