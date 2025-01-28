@@ -8,11 +8,17 @@
 
 <h3>Order Book</h3>
 
-<Chart Config="_config1" @ref="_chart1" Height="400px"></Chart>
+<Chart Config="_config" @ref="_chart" Height="400px"></Chart>
+
+<div>
+    <label for="btcAmount">Enter BTC Amount:</label>
+    <input id="btcAmount" type="number" @bind="btcAmount" step="0.01" min="0" max="100" />
+    <p>Price: @btcQuote EUR</p>
+</div>
 
 @code {
-    private BarChartConfig? _config1;
-    private Chart? _chart1;
+    private BarChartConfig? _config;
+    private Chart? _chart;
 
     private OrderBookResponse orderBook = new OrderBookResponse() { BidsItems = new List<OrderBookItem>(), AsksItems = new List<OrderBookItem>() };
 
@@ -23,70 +29,47 @@
     {
         this.orderBook = orderBook;
 
-        _config1 = new BarChartConfig()
-            {
-                Options = new Options()
-                {
-                    Responsive = true,
-                    MaintainAspectRatio = false,
-                    Plugins = new Plugins()
-                    {
-                        Legend = new Legend()
-                        {
-                            Align = Align.Center,
-                            Display = true,
-                            Position = LegendPosition.Right
-                        }
-                    },
-                    Scales = new Dictionary<string, Axis>()
-                {
-                    {
-                        Scales.XAxisId, new Axis()
-                        {
-                            Stacked = true,
-                            Ticks = new Ticks()
-                            {
-                                MaxRotation = 0,
-                                MinRotation = 0
-                            }
-                        }
-                    },
-                    {
-                        Scales.YAxisId, new Axis()
-                        {
-                            Stacked = true
-                        }
-                    }
-                }
-                }
-            };
+        CalculatePrice();
 
-        _config1.Data.Labels = orderBook.BidsItems.Select(b => b.Name).Concat(orderBook.AsksItems.Select(a => a.Name)).ToList();
-
-        _config1.Data.Datasets.Add(new BarDataset()
-            {
-                Label = "Value",
-                Data = orderBook.BidsItems.Select(b => b.Value).Concat(orderBook.AsksItems.Select(a => a.Value)).ToList(),
-                BackgroundColor = orderBook.BidsItems.Select(p => "rgba(75, 192, 192, 0.2)").Concat(orderBook.AsksItems.Select(p => "rgba(255, 99, 132, 0.2)")).ToList(),
-                BorderColor = orderBook.BidsItems.Select(p => "rgb(75, 192, 192)").Concat(orderBook.AsksItems.Select(prop => "rgb(255, 99, 132)")).ToList(),
-                BorderWidth = 1,
-            });
+        DefineChartConfig();
 
         await InvokeAsync(StateHasChanged);
     }
 
-    public void Dispose()
+    private void CalculatePrice()
     {
-        Console.WriteLine("Component Disposed");
-        BitstampService.OnOrderBookUpdated -= UpdatePrice;
-        BitstampService.StopFetchingOrderBook();
+        if (btcAmount <= 0 || orderBook.AsksItems == null || !orderBook.AsksItems.Any())
+        {
+            btcQuote = 0;
+            return;
+        }
+
+        decimal remainingAmount = btcAmount;
+        decimal totalCost = 0;
+
+        foreach (var ask in orderBook.AsksItems)
+        {
+            decimal askAmount = ask.Value ?? 0;
+            decimal askPrice = decimal.Parse(ask.Name, CultureInfo.InvariantCulture);
+
+            if (remainingAmount <= askAmount)
+            {
+                totalCost += remainingAmount * askPrice;
+                break;
+            }
+            else
+            {
+                totalCost += askAmount * askPrice;
+                remainingAmount -= askAmount;
+            }
+        }
+
+        btcQuote = totalCost;
     }
 
-    protected override async Task OnInitializedAsync()
+    private void DefineChartConfig()
     {
-        BitstampService.OnOrderBookUpdated += UpdatePrice;
-        BitstampService.StartFetchingOrderBook();
-        _config1 = new BarChartConfig()
+        _config = new BarChartConfig()
         {
             Options = new Options()
             {
@@ -112,7 +95,7 @@
                                 MaxRotation = 0,
                                 MinRotation = 0,
                             },
-                            
+
                         }
                     },
                     {
@@ -125,16 +108,29 @@
             }
         };
 
-        _config1.Data.Labels = orderBook.BidsItems.Select(b => b.Name).Concat(orderBook.AsksItems.Select(a => a.Name)).ToList();
+        _config.Data.Labels = orderBook.BidsItems.Select(b => b.Name).Concat(orderBook.AsksItems.Select(a => a.Name)).ToList();
 
-        _config1.Data.Datasets.Add(new BarDataset()
+        _config.Data.Datasets.Add(new BarDataset()
         {
             Label = "Value",
             Data = orderBook.BidsItems.Select(b => b.Value).Concat(orderBook.AsksItems.Select(a => a.Value)).ToList(),
             BackgroundColor = orderBook.BidsItems.Select(p => "rgba(75, 192, 192, 0.2)").Concat(orderBook.AsksItems.Select(p => "rgba(255, 99, 132, 0.2)")).ToList(),
             BorderColor = orderBook.BidsItems.Select(p => "rgb(75, 192, 192)").Concat(orderBook.AsksItems.Select(prop => "rgb(255, 99, 132)")).ToList(),
             BorderWidth = 1,
-            
+
         });
+    }
+
+    public void Dispose()
+    {
+        BitstampService.OnOrderBookUpdated -= UpdatePrice;
+        BitstampService.StopFetchingOrderBook();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        BitstampService.OnOrderBookUpdated += UpdatePrice;
+        BitstampService.StartFetchingOrderBook();
+        DefineChartConfig();
     }
 }
