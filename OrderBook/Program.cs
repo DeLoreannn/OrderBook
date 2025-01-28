@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using OrderBook.Components;
+using OrderBook.Domain;
 using OrderBook.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -6,7 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddSingleton<BitstampService>();
+builder.Services.AddDbContext<OrderBookDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<BitstampService>();
 builder.Services.AddHttpClient();
 
 var app = builder.Build();

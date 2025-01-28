@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
+using OrderBook.Domain.Entities;
 
-namespace OrderBook.Domain.Entities
+namespace OrderBook.Responses
 {
     public class OrderBookResponse
     {
