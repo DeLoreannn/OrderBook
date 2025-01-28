@@ -17,6 +17,7 @@ namespace OrderBook.Services
         private const int OrderBookItemsToTake = 100;
 
         public event Action<OrderBookResponse> OnOrderBookUpdated;
+        private readonly SemaphoreSlim _dbContextLock = new SemaphoreSlim(1, 1);
 
         public BitstampService(HttpClient httpClient, OrderBookDbContext dbContext)
         {
@@ -33,6 +34,8 @@ namespace OrderBook.Services
         {
             try
             {
+                await _dbContextLock.WaitAsync();
+
                 var currentTime = DateTime.UtcNow;
                 var response = await _httpClient.GetStringAsync(OrderBookUrl);
                 var orderBookData = JsonConvert.DeserializeObject<OrderBookResponse>(response);
@@ -74,6 +77,10 @@ namespace OrderBook.Services
             catch (Exception ex)
             {
                 OnOrderBookUpdated?.Invoke(null);
+            }
+            finally
+            {
+                _dbContextLock.Release();
             }
         }
 

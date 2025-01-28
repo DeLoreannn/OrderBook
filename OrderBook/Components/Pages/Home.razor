@@ -26,10 +26,8 @@
     private decimal btcAmount = 0;
     private decimal btcQuote = 0;
 
-    private const string GreenBackgroundColor = "rgba(75, 192, 192, 0.2)";
-    private const string GreenBorderColor = "rgb(75, 192, 192)";
-    private const string RedBackgroundColor = "rgba(255, 99, 132, 0.2)";
-    private const string RedBorderColor = "rgb(255, 99, 132)";
+    private const string GreenBackgroundColor = "rgb(75, 192, 192)";
+    private const string RedBackgroundColor = "rgb(255, 99, 132)";
 
     private async void UpdatePrice(OrderBookResponse orderBook)
     {
@@ -121,7 +119,7 @@
             Label = "Value",
             Data = orderBook.BidsItems.Select(b => b.Value).Concat(orderBook.AsksItems.Select(a => a.Value)).ToList(),
             BackgroundColor = orderBook.BidsItems.Select(p => GreenBackgroundColor).Concat(orderBook.AsksItems.Select(p => RedBackgroundColor)).ToList(),
-            BorderColor = orderBook.BidsItems.Select(p => GreenBorderColor).Concat(orderBook.AsksItems.Select(prop => GreenBorderColor)).ToList(),
+            BorderColor = orderBook.BidsItems.Select(p => GreenBackgroundColor).Concat(orderBook.AsksItems.Select(prop => RedBackgroundColor)).ToList(),
             BorderWidth = 1,
 
         });
