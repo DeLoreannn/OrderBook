@@ -21,7 +21,7 @@
     private BarChartConfig? _config;
     private Chart? _chart;
 
-    private OrderBookResponse orderBook = new OrderBookResponse() { BidsItems = new List<OrderBookItem>(), AsksItems = new List<OrderBookItem>() };
+    private OrderBookUpdate orderBook = new OrderBookUpdate() { Bids = new List<OrderBookItem>(), Asks = new List<OrderBookItem>() };
 
     private decimal btcAmount = 0;
     private decimal btcQuote = 0;
@@ -29,7 +29,7 @@
     private const string GreenBackgroundColor = "rgb(75, 192, 192)";
     private const string RedBackgroundColor = "rgb(255, 99, 132)";
 
-    private async void UpdatePrice(OrderBookResponse orderBook)
+    private async void UpdatePrice(OrderBookUpdate orderBook)
     {
         this.orderBook = orderBook;
 
@@ -42,7 +42,7 @@
 
     private void CalculatePrice()
     {
-        if (btcAmount <= 0 || orderBook.AsksItems == null || !orderBook.AsksItems.Any())
+        if (btcAmount <= 0 || orderBook.Asks == null || !orderBook.Asks.Any())
         {
             btcQuote = 0;
             return;
@@ -51,10 +51,10 @@
         decimal remainingAmount = btcAmount;
         decimal totalCost = 0;
 
-        foreach (var ask in orderBook.AsksItems)
+        foreach (var ask in orderBook.Asks)
         {
-            decimal askAmount = ask.Value ?? 0;
-            decimal askPrice = decimal.Parse(ask.Name, CultureInfo.InvariantCulture);
+            decimal askAmount = ask.Amount ?? 0;
+            decimal askPrice = ask.Price ?? 0;
 
             if (remainingAmount <= askAmount)
             {
@@ -112,14 +112,14 @@
             }
         };
 
-        _config.Data.Labels = orderBook.BidsItems.Select(b => b.Name).Concat(orderBook.AsksItems.Select(a => a.Name)).ToList();
+        _config.Data.Labels = orderBook.Bids.Select(b => b.Price.ToString()).Concat(orderBook.Asks.Select(a => a.Price.ToString())).ToList();
 
         _config.Data.Datasets.Add(new BarDataset()
         {
             Label = "Value",
-            Data = orderBook.BidsItems.Select(b => b.Value).Concat(orderBook.AsksItems.Select(a => a.Value)).ToList(),
-            BackgroundColor = orderBook.BidsItems.Select(p => GreenBackgroundColor).Concat(orderBook.AsksItems.Select(p => RedBackgroundColor)).ToList(),
-            BorderColor = orderBook.BidsItems.Select(p => GreenBackgroundColor).Concat(orderBook.AsksItems.Select(prop => RedBackgroundColor)).ToList(),
+            Data = orderBook.Bids.Select(b => b.Amount).Concat(orderBook.Asks.Select(a => a.Amount)).ToList(),
+            BackgroundColor = orderBook.Bids.Select(p => GreenBackgroundColor).Concat(orderBook.Asks.Select(p => RedBackgroundColor)).ToList(),
+            BorderColor = orderBook.Bids.Select(p => GreenBackgroundColor).Concat(orderBook.Asks.Select(prop => RedBackgroundColor)).ToList(),
             BorderWidth = 1,
 
         });

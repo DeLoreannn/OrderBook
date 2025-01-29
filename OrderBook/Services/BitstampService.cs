@@ -16,7 +16,7 @@ namespace OrderBook.Services
         private const int OrderBookFetchingFrequencyInMilliseconds = 1000;
         private const int OrderBookItemsToTake = 100;
 
-        public event Action<OrderBookResponse> OnOrderBookUpdated;
+        public event Action<OrderBookUpdate> OnOrderBookUpdated;
         private readonly SemaphoreSlim _dbContextLock = new SemaphoreSlim(1, 1);
 
         public BitstampService(HttpClient httpClient, OrderBookDbContext dbContext)
@@ -36,32 +36,32 @@ namespace OrderBook.Services
             {
                 await _dbContextLock.WaitAsync();
 
-                var currentTime = DateTime.UtcNow;
                 var response = await _httpClient.GetStringAsync(OrderBookUrl);
                 var orderBookData = JsonConvert.DeserializeObject<OrderBookResponse>(response);
+                var timestamp = DateTimeOffset.FromUnixTimeSeconds(long.Parse(orderBookData.Timestamp)).UtcDateTime;
 
                 var bids = orderBookData.Bids.Select(b =>
                 {
-                    decimal value;
-                    decimal.TryParse(b[1], NumberStyles.Any, CultureInfo.InvariantCulture, out value);
+                    decimal.TryParse(b[0], NumberStyles.Any, CultureInfo.InvariantCulture, out decimal price);
+                    decimal.TryParse(b[1], NumberStyles.Any, CultureInfo.InvariantCulture, out decimal amount);
                     return new OrderBookItem
                     {
-                        Name = b[0],
-                        Value = value,
-                        Timestamp = currentTime,
+                        Price = price,
+                        Amount = amount,
+                        Timestamp = timestamp,
                         Type = OrderBookItemType.Bid,
                     };
-                }).Take(OrderBookItemsToTake).OrderBy(b => decimal.Parse(b.Name)).ToList();
+                }).Take(OrderBookItemsToTake).OrderBy(b => b.Price).ToList();
 
                 var asks = orderBookData.Asks.Select(a =>
                 {
-                    decimal value;
-                    decimal.TryParse(a[1], NumberStyles.Any, CultureInfo.InvariantCulture, out value);
+                    decimal.TryParse(a[0], NumberStyles.Any, CultureInfo.InvariantCulture, out decimal price);
+                    decimal.TryParse(a[1], NumberStyles.Any, CultureInfo.InvariantCulture, out decimal amount);
                     return new OrderBookItem
                     {
-                        Name = a[0],
-                        Value = value,
-                        Timestamp = currentTime,
+                        Price = price,
+                        Amount = amount,
+                        Timestamp = timestamp,
                         Type = OrderBookItemType.Ask
                     };
                 }).Take(OrderBookItemsToTake).ToList();
@@ -69,10 +69,11 @@ namespace OrderBook.Services
                 _dbContext.OrderBookItems.AddRange(bids.Concat(asks));
                 await _dbContext.SaveChangesAsync();
 
-                orderBookData.BidsItems = bids;
-                orderBookData.AsksItems = asks;
-
-                OnOrderBookUpdated?.Invoke(orderBookData);
+                OnOrderBookUpdated?.Invoke(new OrderBookUpdate
+                {
+                    Bids = bids,
+                    Asks = asks,
+                });
             }
             catch (Exception ex)
             {
