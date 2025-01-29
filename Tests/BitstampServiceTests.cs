@@ -36,7 +36,8 @@ public class BitstampServiceTests
             Asks = new string[][]
             {
             new string[] { "11000", "1.0" }
-            }
+            },
+            Timestamp = "1738146643"
         };
         var jsonResponse = JsonConvert.SerializeObject(orderBookResponse);
 
@@ -52,7 +53,7 @@ public class BitstampServiceTests
                 Content = new StringContent(jsonResponse),
             });
         bool eventTriggered = false;
-        OrderBookResponse receivedOrderBook = null;
+        OrderBookUpdate receivedOrderBook = null;
 
         _bitstampService.OnOrderBookUpdated += (updatedOrderBook) =>
         {
@@ -66,11 +67,11 @@ public class BitstampServiceTests
         // Assert
         Assert.True(eventTriggered, "The OnOrderBookUpdated event was not triggered.");
         Assert.NotNull(receivedOrderBook);
-        Assert.Equal(1, receivedOrderBook.BidsItems.Count);
-        Assert.Equal(1, receivedOrderBook.AsksItems.Count);
+        Assert.Equal(1, receivedOrderBook.Bids.Count);
+        Assert.Equal(1, receivedOrderBook.Asks.Count);
         Assert.Equal(2, _dbContext.OrderBookItems.Count());
-        Assert.Contains(_dbContext.OrderBookItems, i => i.Name == "10000" && i.Type == OrderBook.Domain.Enums.OrderBookItemType.Bid);
-        Assert.Contains(_dbContext.OrderBookItems, i => i.Name == "11000" && i.Type == OrderBook.Domain.Enums.OrderBookItemType.Ask);
+        Assert.Contains(_dbContext.OrderBookItems, i => i.Price == 10000 && i.Type == OrderBook.Domain.Enums.OrderBookItemType.Bid);
+        Assert.Contains(_dbContext.OrderBookItems, i => i.Price == 11000 && i.Type == OrderBook.Domain.Enums.OrderBookItemType.Ask);
     }
 
     [Fact]
